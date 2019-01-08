@@ -1,0 +1,86 @@
+<template>
+  <section class="cms-body" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>        
+    <el-form  ref="form" :model="dataInfo" :rules="rules" 
+        class="cms-form" label-width="162px">
+        <el-form-item label="机构id" class="flex-50"  prop="orgId">
+               <el-input v-model="dataInfo.orgId" class="cms-width"></el-input>
+         </el-form-item>
+          
+       <el-form-item label="指标编码" class="flex-50" prop="zbbm">
+               <el-input v-model="dataInfo.zbbm" class="cms-width"></el-input>
+         </el-form-item>
+          <el-form-item label="指标名称" class="flex-50" prop="zbmc">
+               <el-input v-model="dataInfo.zbmc" class="cms-width"></el-input>              
+         </el-form-item>
+          
+       <el-form-item label="生理变化解释" class="flex-100"  prop="slbhjs">
+               <el-input v-model="dataInfo.slbhjs" class="cms-width" type="textarea"></el-input>
+       </el-form-item>
+        
+       <el-form-item label="病理增高解释" class="flex-100"  prop="blzgjs">
+               <el-input v-model.number="dataInfo.blzgjs" class="cms-width" type="textarea"></el-input>
+         </el-form-item>
+          <el-form-item label="病理降低解释" class="flex-100" prop="bljdjs">
+               <el-input v-model="dataInfo.bljdjs" class="cms-width"  type="textarea"></el-input>              
+         </el-form-item>
+       <el-form-item label="健康指导" class="flex-100" prop="jkzd">
+               <el-input v-model="dataInfo.jkzd" class="cms-width" type="textarea"></el-input>
+         </el-form-item>
+         <div class="form-footer">
+           <el-button type="warning" @click="add(true)">保存并继续添加</el-button>
+               <el-button type="primary"  @click="add(false)">提交</el-button>
+           <!-- <el-button type="info" @click="reset">重置</el-button> -->
+           <span class="gray">
+              选择“提交并继续添加”按钮会停留在添加页面；选择“提交”按钮后将跳转到对应的列表页</span> 
+         </div>
+    </el-form>
+</section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+
+export default {
+  mixins: [formMixns], //普通表单变量
+  data() {
+    let required = va.required('此项必填');
+    let number = va.number('只能输入数字');
+    let email = va.email('请输入正确的邮箱地址');
+    let validateName = va.validateName('用户名已存在');
+    let tel = va.tel('请输入正确的固定电话');
+    let mobile = va.mobile('请输入正确的手机号');
+    return {
+      memberGroup: [], //业务变量会员组
+      dataInfo:{
+          updateUser:localStorage.getItem('userName')
+      },
+      rules: {
+        //校验规则
+        orgId: [required],
+        zbbm: [required,number],
+        zbmc: [required],
+      }
+    };
+  },
+  methods: {
+
+    add(state) {
+      //自定义一下处理方法
+      this.saveDataInfo(state,this.$api.saveZb,this.dataInfo,"targetlist");
+    },
+    update(){
+
+    }
+  },
+  created() {
+       this.loading=false;
+  }
+};
+</script>
+
+<style>
+
+</style>

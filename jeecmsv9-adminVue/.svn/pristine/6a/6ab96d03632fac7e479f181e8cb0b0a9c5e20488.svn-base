@@ -1,0 +1,85 @@
+<template>
+  <section v-loading="loading" class="cms-body">
+    <div class="cms-list-header flex-between">
+     <div>
+       <el-select v-model="canShu.checkStatus" @change="query">
+          <el-option label="所有状态" value=""></el-option>
+          <el-option label="未核查" value="0"></el-option>
+          <el-option label="核查完成" value="1"></el-option>
+        </el-select>
+        <el-date-picker v-model="canShu.dateRange" value-format="yyyy-MM-dd" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期">
+        </el-date-picker>
+     </div>
+      <!-- 右操作 -->
+      <div>
+        
+        <cms-input label="校对人" v-model="canShu.checkUser"></cms-input>
+        <el-button @click="query">查询</el-button>
+      </div>
+    </div>
+    <!-- 表格 -->
+    <el-table :data="tableData" stripe style="width: 100%" @selection-change="checkIds" @row-dblclick="rowdbClick">
+      <el-table-column type="selection" width="65" align="right"></el-table-column>
+      <el-table-column prop="fName" label="疾病名称" align="center"></el-table-column>
+      <el-table-column prop="fUpdateTime" label="更新时间" align="center"> </el-table-column>
+      <el-table-column prop="checkUser" label="校对人" align="center"> </el-table-column>
+      <el-table-column prop="" label="校对状态" align="center">
+        <div slot-scope="scope">
+          <span v-if="scope.row.checkStatus==0" class="red">未核查</span>
+          <span v-else class="green">核查完成</span>
+        </div>
+      </el-table-column>
+
+    </el-table>
+    <!-- 表格底部 -->
+    <div class="cms-list-footer">
+      <!-- cms分页组件 -->
+      <cms-pagination :total="total" @change="getPages"></cms-pagination>
+    </div>
+  </section>
+</template>
+
+<script>
+import listMixins from "@/mixins/xinboList";
+export default {
+  mixins: [listMixins],
+  data() {
+    return {
+      canShu: {
+        //只需要业务参数
+        dateRange: null,
+        checkUser: "",
+        checkStatus: "",
+        pageNo: null,
+        pageSize: 10
+      }
+    };
+  },
+  methods: {
+    // dateFormat: function(row, column) {
+    //   const dateStr = row[column.property];
+    //   if (dateStr == undefined) {
+    //     return "";
+    //   }
+    //   const dateMat = new Date(dateStr);
+    //   const year = dateMat.getFullYear();
+    //   const month = dateMat.getMonth() + 1;
+    //   const day = dateMat.getDate();
+    //   const hh = dateMat.getHours();
+    //   const mm = dateMat.getMinutes();
+    //   const ss = dateMat.getSeconds();
+    //   return year + "/" + month + "/" + day + " " + hh + ":" + mm + ":" + ss;
+    // },
+    rowdbClick: function(row) {
+      this.$router.push({ path: "/jiBing/oprate", query: { id: row.pid } });
+    }
+  },
+  created() {
+    this.params.canShu = JSON.stringify(this.canShu);
+    this.initTableData(this.$api.jibingList, this.params);
+  }
+};
+</script>
+
+<style>
+</style>

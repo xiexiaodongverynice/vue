@@ -1,0 +1,84 @@
+<template>
+  <section class="cms-body" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>        
+    <el-form  ref="form" :model="dataInfo" :rules="rules" 
+        class="cms-form" label-width="162px">
+        <el-form-item label="机构名称" class="flex-50"  prop="orgName">
+               <el-input v-model="dataInfo.orgName" class="cms-width"></el-input>
+         </el-form-item>
+          
+       <el-form-item label="机构代码" class="flex-50" prop="orgCode">
+               <el-input v-model="dataInfo.orgCode" class="cms-width"></el-input>
+         </el-form-item>
+       <el-form-item label="APPID" class="flex-50" prop="orgAppid">
+               <el-input v-model="dataInfo.orgAppid" class="cms-width"></el-input>
+         </el-form-item>
+       <el-form-item label="APPSECRET" class="flex-50" prop="orgAppsecret">
+               <el-input v-model="dataInfo.orgAppsecret" class="cms-width"></el-input>
+         </el-form-item>
+      
+         <div class="form-footer">
+               <el-button type="primary"  @click="update()">修改</el-button>
+           <el-button type="info" @click="reset">重置</el-button>
+         </div>
+    </el-form>
+</section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+
+export default {
+  mixins: [formMixns], //普通表单变量
+  data() {
+    let self = this;
+
+    let required = va.required("此项必填");
+    return {
+      memberGroup: [], //业务变量会员组
+
+      rules: {
+        //校验规则
+        orgName: [required],
+        orgCode: [required],
+        orgAppid: [required],
+        orgAppsecret: [required]
+      }
+    };
+  },
+  methods: {
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let paras={canShu:JSON.stringify({ id: id })};
+      axios
+        .all([
+          axios.post(api.orgQueryOne, paras) //axios批量发送请求
+        ])
+        .then(
+          axios.spread(data => {
+            this.dataInfo = data.body; //将用户数据复制给dataInfo
+            this.$refs["form"].resetFields();
+            this.loading = false;
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    },
+    update() {
+      let paras = { canShu: JSON.stringify(this.dataInfo) };
+      this.updateDataInfo(this.$api.orgEdit, paras, "list");
+    }
+  },
+  created() {
+    //初始获取数据
+    this.getDataInfo(this.id);
+  }
+};
+</script>
+
+<style>
+</style>

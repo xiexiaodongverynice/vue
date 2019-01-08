@@ -1,0 +1,338 @@
+<template>
+  <section class="cms-body" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>
+    <div class="main">
+      <!-- 标题栏 -->
+      <div style="" class="art-title">
+        {{dataInfo.fName}}
+      </div>
+      <div class="art-body">
+        <!-- 操作控制面板 -->
+        <div class="kz-pannel">
+          <ul class="hc-xq">
+            <li class="hc"><a @click="switchHuaci(true)">划词</a></li>
+            <li class="xq"><a @click="switchHuaci(false)">详情</a></li>
+          </ul>
+          <ul class="class-type">
+            <li><a @click="switchHCType('jbmc')">疾病</a></li>
+            <li><a @click="switchHCType('ypmc')">药品</a></li>
+            <li><a @click="switchHCType('zbmc')">指标</a></li>
+
+          </ul>
+        </div>
+        <!-- 内容操作区 -->
+        <div id="con_nonParticipleArea">
+          <div class="word-token-editer-main">
+            <div class="word_title">【概述】</div>
+            <div class="word_content word-token-editer-div" v-html="dataInfo.fGaiShuDis"></div>
+            <div class="word_title">【临床表现】</div>
+            <div class="word_content word-token-editer-div" v-html="dataInfo.fLinChuangTeDianDis"></div>
+            <div class="word_title">【诊断要点】</div>
+            <div class="word_content word-token-editer-div" v-html="dataInfo.fZhiLiaoDis"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="con_ProviewArea"></div>
+      <div class="form-footer">
+        <el-button type="primary" @click="add(false)">校对完成</el-button>
+      </div>
+    </div>
+    <!-- 右侧栏 -->
+    <div class="right-side"></div>
+
+  </section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+
+export default {
+  mixins: [formMixns], //普通表单变量
+  data() {
+    let self = this;
+
+    let required = va.required("此项必填");
+    return {
+      memberGroup: [], //业务变量会员组
+
+      rules: {
+        //校验规则
+        orgName: [required],
+        orgCode: [required],
+        orgAppid: [required],
+        orgAppsecret: [required]
+      },
+      isSwitch: true,
+      wordToken: {
+        currentCName: null,
+        currenCoreName: null,
+        editer: null,
+        currentNode: null
+      }
+    };
+  },
+  methods: {
+    switchHuaci(value) {
+      this.isSwitch = value;
+    },
+    switchHCType(value) {
+      this.wordToken.currentCName = value;
+    },
+    iniWte() {
+      var self = this;
+      var con_ProviewArea = document.getElementById("con_ProviewArea");
+      var con_nonParticipleArea = document.getElementById(
+        "con_nonParticipleArea"
+      );
+
+      var text = $(con_nonParticipleArea)
+        .find(".word_title:first")
+        .parent()
+        .html();
+
+      var wte = $.wordTokenEditer({
+        editable: true,
+        dom: $(con_nonParticipleArea),
+        block: "word_content",
+        disableColor: "#aaa",
+        text: text,
+        callback: function(obj) {
+          var action = obj.action;
+          var types = obj.types;
+          var text = obj.text;
+
+          if (action == "click" && self.isSwitch) {
+            /*
+			var cname = window.wordToken.currentCName;
+			if(cname && cname == "wordTokenClean"){
+				wte.cleanNode(obj.node);
+				deleteWord(text,types);
+				$(con_ProviewArea.getDom()).html(wte.contents());
+			}
+			*/
+            if ($(obj.node).attr("id")) {
+              window.domId = $(obj.node).attr("id");
+            }
+
+            if ($(obj.node).hasClass("word_error")) {
+              var ds = view.get("#ds_verifyDetail").getData();
+              ds.each(function(data) {
+                if ($(obj.node).attr("id") == data.get("domId")) {
+                  view
+                    .get("#ds_verifyDetail")
+                    .getData()
+                    .setCurrent(data);
+                  return;
+                }
+              });
+
+              if ($(obj.node).hasClass("word_temp")) {
+                view.set("#btn_process.visible", true);
+              } else {
+                view.set("#btn_process.visible", false);
+              }
+
+              view.get("#dialog_error").show();
+            }
+
+            for (var i = 0; i < types.length; i++) {
+              for (var j = 0; j < window.classAry.length; j++) {
+                if (types[i] == window.classAry[j]) {
+                  window.click_currentCname = types[i];
+                  break;
+                }
+              }
+            }
+
+            view.set("#hc_ybqk.visible", false);
+
+            if (window.temp_currentNode == obj.node) {
+              return;
+            }
+
+            view.id("btn_saveSplitWord").fireEvent("onClick");
+
+            window.temp_currentNode = obj.node;
+
+            var ary = [];
+            view.set("#txt_normal.text", text);
+            var datas = view.get("#ds_Participle").getData();
+            datas.each(function(data) {
+              if (data.get("sourceWord") == text) {
+                var para = {};
+                para = {
+                  word: data.get("word"),
+                  isCore: data.get("isCore"),
+                  iwg: data.get("isWordGroup")
+                };
+                ary.push(para);
+              }
+            });
+
+            var ds = view.get("#ds_splitWord").getData();
+            ds.clear();
+            for (var i = 0; i < ary.length; i++) {
+              var bol = false;
+              if (ary[i].iwg == "是") {
+                bol = true;
+              }
+              var bolCore = false;
+              if (ary[i].isCore == "1") {
+                bolCore = true;
+              }
+              ds.insert({
+                word: ary[i].word,
+                core: bolCore,
+                wordGroup: bol
+              });
+            }
+            view.set("#hc_normal.visible", true);
+
+            window.sourceText = text;
+          } else if (action == "dbclick" && self.isSwitch) {
+            if ($(obj.node).hasClass("word_temp")) {
+              return;
+            }
+            window.temp_currentNode = null;
+
+            //var ds = view.get("#ds_splitWord").getData();
+            //ds.clear();
+            //view.set("#txt_normal.text", "");
+            //deleteWord(text, types);
+            wte.cleanNode(obj.node);
+            $(con_ProviewArea).html(wte.contents());
+          } else if (action == "select") {
+            //view.set("#hc_ybqk.visible", false);
+            //view.set("#hc_normal.visible", true);
+
+            if (self.wordToken.currentCName) {
+              if (text.length == 1) {
+                alert("所选的词长度必须大于1!");
+                wte.cleanNode(obj.node);
+                return;
+              }
+              var cNmae = self.wordToken.currentCName;
+              window.click_currentCname = self.wordToken.currentCName;
+              var isTrue = true;
+              //isTrue = isValidWord(text);
+              if (!isTrue) {
+                alert("您所选的词包含不合法字符,请重新选择!");
+                wte.cleanNode(obj.node);
+              } else {
+                var aryName = [];
+                aryName.push(self.wordToken.currentCName);
+                if (self.wordToken.currenCoreName != "") {
+                  aryName.push(self.wordToken.currenCoreName);
+                }
+                //划词自动保存上一个划词所分的词
+                // var ds = view.get("#ds_splitWord").getData();
+                // if (ds) {
+                //   view.get("#btn_saveSplitWord").fireEvent("onClick");
+                // }
+
+                // addWord(text, aryName);
+                wte.tokenNode(obj.node, aryName);
+                $(con_ProviewArea).html(wte.contents());
+
+                window.temp_currentNode = obj.node;
+              }
+              //划词时划所有相同名词
+              //this.tokenNodeByText(text,[window.wordToken.currentCName]);
+            } else {
+              wte.cleanNode(obj.node);
+            }
+          }
+        }
+      });
+    },
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let paras = { canShu: JSON.stringify({ pid: id }) };
+      axios
+        .all([
+          axios.post(api.jibingDetail, paras) //axios批量发送请求
+        ])
+        .then(
+          axios.spread(data => {
+            this.dataInfo = data.body; //将用户数据复制给dataInfo
+            this.dataInfo.orgName = "";
+            this.dataInfo.orgCode = "";
+            this.dataInfo.orgAppid = "";
+            this.dataInfo.orgAppsecret = "";
+            this.$refs["form"].resetFields();
+            this.loading = false;
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    },
+
+    add(state) {
+      //自定义一下处理方法
+      let paras = { canShu: JSON.stringify(this.dataInfo) };
+      this.saveDataInfo(state, this.$api.orgEdit, paras, "list");
+    },
+    update() {}
+  },
+  created() {
+    //初始获取数据
+    this.getDataInfo(this.id);
+  },
+  updated() {
+    //初始获取数据
+    this.iniWte();
+  }
+};
+</script>
+
+<style>
+.right-side {
+  float: right;
+  width: 380px;
+}
+.main {
+  color:#333;
+  margin-right: 400px;
+  
+}
+.art-title {
+  font-size: 24px;
+  text-align: center;
+  height: 60px;
+  line-height: 60px;
+  border-bottom: 2px solid #e6ebf5;
+}
+.art-body {
+  padding: 10px;
+  border: 1px solid #e6ebf5;
+}
+.kz-pannel {
+  overflow: hidden;
+  background-color: #f5f6f5;
+  padding: 10px 20px;
+}
+.kz-pannel ul li {
+  float: left;
+}
+.kz-pannel ul.hc-xq {
+  float: left;
+}
+.kz-pannel ul.hc-xq li.hc {
+  background: yellowgreen;
+}
+.kz-pannel ul.hc-xq li.xq {
+  background: orange;
+}
+.kz-pannel ul.class-type {
+  margin-left: 150px;
+}
+.main .form-footer{
+  padding: 15px 0;
+  text-align: center;
+  }
+</style>

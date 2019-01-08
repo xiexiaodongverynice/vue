@@ -1,0 +1,673 @@
+/**
+ * @author DLL
+ */
+window.temp_timer=null;
+window.temp_is_double=false;
+$.extend({
+	/**
+	 * 分词编辑器
+	 * 每个文本块用<div>包裹， 每个已分词文本用<a>包裹
+	 * @param {dom,text} paramsObj;
+	 */
+	wordTokenEditer : function(paramsObj) {
+
+		var editBaseAttr = {
+			contenteditable : "true"
+		};
+
+		var prvtEditAttr = {
+			/*onpaste : "return false",
+			oncontextmenu : "return false",
+			oncopy : "return false",
+			oncut : "return false",
+			onkeydown : "return false",
+			onkeyup : "return false"*/
+		};
+
+		var innerObj = {
+			block : null,
+			editable : true,
+			domElement : null,
+			wordText : null,
+			currentNode : null,
+			disableColor : "#aaa",
+			mouseDownNode : null,
+			isMouseDown : false
+		};
+
+		var editState = {
+			isFocus : false,
+			canBack : false,
+			canDel : false
+		};
+
+		var wtediter = {
+			callback : null,
+			tokenNode : tokenNode,
+			tokenNodeByText : tokenNodeByText,
+			cleanNode : cleanNode,
+			cleanNodeByText : cleanNodeByText,
+			cleanAllNode : cleanAllNode,
+			enableNodes : enableNodes,
+			disableNodes : disableNodes,
+			refresh : refresh,
+			contents : contents
+		};
+
+		return refresh(paramsObj);
+
+		function contents() {
+			var ctnt = $(innerObj.domElement).children().clone(false);
+			//去除编辑器附加的样式
+			$(ctnt).find("a").each(function(i, a) {
+				$(a).removeClass("word-token-editer-a");
+				$(a).removeClass("word-token-editer-a-click");
+				$(a).removeClass("word-token-editer-a-disabled");
+				$(a).css("color", "");
+			});
+			$(ctnt).find("div").each(function(i, div) {
+				$(div).removeClass("word-token-editer-div");
+				$.each(editBaseAttr, function(attrName, attrValue) {
+					$(div).removeAttr(attrName);
+				});
+				$.each(prvtEditAttr, function(attrName, attrValue) {
+					$(div).removeAttr(attrName);
+				});
+			});
+			return $(ctnt).html();
+		}
+
+		function refresh(paramsObj) {
+			if (paramsObj) {
+				if (paramsObj.dom) {
+					innerObj.domElement = paramsObj.dom;
+				}
+				if (paramsObj.text) {
+					innerObj.wordText = paramsObj.text;
+				}
+				if (paramsObj.callback) {
+					wtediter.callback = paramsObj.callback;
+				}
+				if (paramsObj.block) {
+					innerObj.block = paramsObj.block;
+				}
+				if (paramsObj.disableColor) {
+					innerObj.disableColor = paramsObj.disableColor;
+				}
+				if (undefined != paramsObj.editable) {
+					innerObj.editable = paramsObj.editable;
+				}
+				if (paramsObj.disableColor) {
+					innerObj.disableColor = paramsObj.disableColor;
+				}
+			}
+
+			if (innerObj.domElement) {
+				var ctnt = "";
+
+				var divCtnt = $(innerObj.domElement).html();
+				if (innerObj.wordText) {
+					ctnt = innerObj.wordText;
+				}
+				else if (divCtnt) {
+					ctnt = divCtnt;
+				}
+
+				mainAttr = "";
+
+				//主DOM
+				var mainDiv = $('<div></div>');
+				mainDiv.addClass("word-token-editer-main");
+				mainDiv.html(ctnt);
+				$(innerObj.domElement).empty().append(mainDiv);
+
+				var bsr = blockSelecter();
+				$(mainDiv).find(bsr).each(function(i, div) {
+					initDivBlock(div);
+				});
+			}
+
+			return wtediter;
+		}
+
+		function blockSelecter() {
+			var bsdiv = "div";
+			if (innerObj.block) {
+				bsdiv += "." + innerObj.block;
+			}
+			return bsdiv;
+		}
+
+		/**
+		 * 设置分词
+		 */
+		function tokenNode(node, types) {
+			if (node && node.parentNode) {
+				$(node).removeClass("word-token-editer-def");
+				if (types) {
+					for (var i = 0; i < types.length; i++) {
+						var type = types[i];
+						$(node).addClass(type);
+					}
+				}
+			}
+		}
+
+		function tokenNodeByText(text, types) {
+
+			var bsr = blockSelecter();
+			
+			$(innerObj.domElement).children().find(bsr).each(function(i, div) {
+				var nodes = $(div)[0].childNodes;
+				
+				var ary = [];
+				$.each(nodes, function(index, node) {
+					
+					var nname = getNodeName(node);
+					var ntext = node.textContent;
+					if (nname == "A") {
+
+					}
+					else if (nname == "#text") {
+						//tokenNodeByTextIterator(node, text, types);
+						ary.push(node);
+					}
+				});
+				for(var i=0;i<ary.length;i++){
+					tokenNodeByTextIterator(ary[i], text, types);
+				}
+			});
+
+		}
+
+		function tokenNodeByTextIterator(node, text, types) {
+			var ntext = node.textContent;
+			if (ntext) {
+				var index = ntext.indexOf(text);
+				if (index >= 0) {
+					var result = tokenWord(node, text, index);
+					var tokenNode = result.tokenNode;
+					if (types) {
+						for (var i = 0; i < types.length; i++) {
+							var type = types[i];
+							$(tokenNode).addClass(type);
+						}
+					}
+					var rightNode = result.rightNode;
+					if (rightNode) {
+						tokenNodeByTextIterator(rightNode, text, types);
+					}else{
+						
+					}
+				}
+			}
+		}
+
+		function enableNodes(types) {
+			updateStateByTypes(types, true);
+		}
+
+		function disableNodes(types) {
+			updateStateByTypes(types, false);
+		}
+
+		function updateStateByTypes(types, isEnable) {
+			var stateClass = "word-token-editer-a-disabled";
+			var bsr = blockSelecter();
+			if (types && types.length > 0) {
+				$(innerObj.domElement).children().find(bsr).children("a").each(function(i, a) {
+					$.each(types, function(index, type) {
+						if ($(a).hasClass(type)) {
+							if (isEnable) {
+								$(a).css("color", "");
+							}
+							else {
+								$(a).css("color", innerObj.disableColor);
+							}
+						}
+					});
+				});
+			}
+			else {
+				var alist = $(innerObj.domElement).children().find(bsr).children("a");
+
+				if (isEnable) {
+					$(alist).css("color", "");
+				}
+				else {
+					$(alist).css("color", innerObj.disableColor);
+				}
+			}
+		}
+
+		/**
+		 * 取消分词
+		 */
+		function cleanNode(node) {
+			if (node) {
+			}
+			else {
+				node = innerObj.currentNode;
+				delete innerObj.currentNode;
+			}
+
+			if (node) {
+				var pnode = node.parentNode;
+				if (pnode) {
+					var prevnode = node.previousSibling;
+					var nextnode = node.nextSibling;
+
+					var text = node.textContent;
+
+					if (prevnode && getNodeName(prevnode) == "#text") {
+						text = prevnode.textContent + text;
+						pnode.removeChild(prevnode);
+					}
+					if (nextnode && getNodeName(nextnode) == "#text") {
+						text = text + nextnode.textContent;
+						pnode.removeChild(nextnode);
+					}
+
+					var tnode = document.createTextNode(text);
+					replaceOrInsertBefore(tnode, node, pnode, false);
+				}
+			}
+		}
+
+		//取消分词后，没有连到一起。
+		function cleanNodeByText(text) {
+			var bsr = blockSelecter();
+			$(innerObj.domElement).find("div.word-token-editer-div").each(function(index, div) {
+				var nodes = div.childNodes;
+
+				var newnodes = new Array();
+				var pnode = null;
+
+				$.each(nodes, function(i, node) {
+
+					var nname = getNodeName(node);
+					var ntext = node.textContent;
+
+					var pname = getNodeName(pnode);
+
+					if ((nname == "A" && ntext == text) || nname == "#text") {
+						if (pnode && pname == "#text") {
+							pnode.textContent = pnode.textContent + ntext;
+						}
+						else {
+							var tnode = document.createTextNode(ntext);
+							pnode = tnode;
+							newnodes.push(tnode);
+						}
+					}
+					else {
+						pnode = node;
+						newnodes.push(node);
+					}
+				});
+				div.innerText = "";
+				$.each(newnodes, function(i, newnode) {
+					div.appendChild(newnode);
+				});
+			});
+		}
+
+		/**
+		 * 清除全部分词
+		 */
+		function cleanAllNode() {
+			$(innerObj.domElement).find("div.word-token-editer-div").each(function(index, div) {
+				if (div) {
+					div.innerText = div.innerText;
+				}
+			});
+		}
+
+		/**
+		 * 初始化每个文本块
+		 */
+		function initDivBlock(div) {
+
+			$(div).attr(editBaseAttr);
+			if (!(innerObj.editable == true)) {
+				$(div).attr(prvtEditAttr);
+			}
+			$(div).addClass("word-token-editer-div");
+
+			if (innerObj.editable == true) {
+
+				$(div).on("blur", function(e) {
+					seteditStateFocus(false);
+				});
+
+				$(div).on("focus", function(e) {
+					seteditStateFocus(true);
+				});
+
+				$(div).on("keydown", function(e) {
+					refreshEditStateOfBackDel();
+					var keyCode = e.keyCode;
+					if (keyCode) {
+						if (keyCode == 8 || keyCode == 46) {
+							if (keyCode == 8 && !editState.canBack) {
+								return false;
+							}
+							else if (keyCode == 46 && !editState.canDel) {
+								return false;
+							}
+						}
+					}
+				});
+			}
+
+			$(div).children("a").each(function(i, elmt) {
+				var sclassText = getAllClass($(elmt)).classText;
+				$(elmt).removeClass();
+				$(elmt).addClass("word-token-editer-a " + sclassText);
+			});
+
+			tokenNodeAddEvent($(div).children("a"));
+
+			/**
+			 * isMouseDown 记录鼠标是否按下
+			 * mouseDownNode 记录鼠标按下时结点
+			 *
+			 * 通过鼠标按下和移动事件组合,获得鼠标按下时的文本结点
+			 * <des>
+			 */
+			$(document).mouseup(function(e) {
+				innerObj.isMouseDown = false;
+			});
+
+			$(div).mousedown(function(e) {
+				innerObj.isMouseDown = true;
+				innerObj.mouseDownNode = null;
+			});
+
+			$(document).mousemove(function(e) {
+				if (innerObj.isMouseDown && innerObj.mouseDownNode == null) {
+					var se = window.getSelection();
+					var anode = se.anchorNode;
+					if (anode) {
+						var aname = getNodeName(anode);
+
+						//是否是已分词结点:<a/>
+						var isA = false;
+						var pnode = anode.parentNode;
+						if (pnode) {
+							var pname = getNodeName(pnode);
+							if (pname == "A" || aname == "A") {
+								isA = true;
+							}
+						}
+						if (!isA) {
+							innerObj.mouseDownNode = anode;
+						}
+					}
+				}
+			});
+
+			//鼠标选择文本标记为分词
+			$(div).mouseup(function(e) {
+				innerObj.isMouseDown = false;
+				var se = window.getSelection();
+				var anchorOffset = se.anchorOffset;
+				var focusOffset = se.focusOffset;
+
+				var anchorNode = se.anchorNode;
+				var focusNode = se.focusNode;
+				var mouseNode = innerObj.mouseDownNode;
+
+				if (anchorNode && focusNode && mouseNode && anchorNode == focusNode && mouseNode == anchorNode) {
+					var start = anchorOffset <= focusOffset ? anchorOffset : focusOffset;
+					var sctnt = se.toString();
+					var result = tokenWord(anchorNode, sctnt, start, true);
+					if (result && result.tokenNode) {
+						tokenCallBack("select", result.tokenNode);
+					}
+				}
+			});
+		}
+
+		/**
+		 * 把文本结点下的文本转换成分词:<a/>
+		 *
+		 * 返回结果result中有三个对象:
+		 * tokenNode 是分词结点
+		 * leftNode 是分词左边的文本
+		 * rightNode 是分词右边的文本
+		 */
+		function tokenWord(anchorNode, sctnt, start, selected) {
+			var result = null;
+			if (anchorNode && sctnt) {
+
+				var nname = getNodeName(anchorNode);
+				var nctnt = anchorNode.textContent;
+				var slen = sctnt.length;
+				var nlen = nctnt.length;
+				var pnode = anchorNode.parentNode;
+				var pname = getNodeName(pnode);
+
+				slen = start + slen > nlen ? nlen - start : slen;
+				sctnt = sctnt.substr(0, slen);
+
+				if (slen <= nlen && pnode && pname == "DIV" && nname == "#text" && slen > 0) {
+					result = {
+						leftNode : null,
+						tokenNode : null,
+						rightNode : null
+					};
+
+					var lctnt = nctnt.substring(0, start);
+					var rctnt = nctnt.substr(start + slen);
+
+					var cnode = anchorNode;
+					var insert = false;
+					if (rctnt.length > 0) {
+						var rnode = document.createTextNode(rctnt);
+						replaceOrInsertBefore(rnode, cnode, pnode, insert);
+						cnode = rnode;
+						insert = true;
+						result.rightNode = rnode;
+					}
+					if (sctnt.length > 0) {
+						var snode = document.createElement('a');
+						$(snode).addClass("word-token-editer-a word-token-editer-def");
+						snode.textContent = sctnt;
+						replaceOrInsertBefore(snode, cnode, pnode, insert);
+						if (selected) {
+							nodeStateClick(snode);
+						}
+						tokenNodeAddEvent(snode);
+						cnode = snode;
+						insert = true;
+						result.tokenNode = snode;
+					}
+					if (lctnt.length > 0) {
+						var lnode = document.createTextNode(lctnt);
+						replaceOrInsertBefore(lnode, cnode, pnode, insert);
+						cnode = lnode;
+						insert = true;
+						result.leftNode = lnode;
+					}
+				}
+			}
+			return result;
+		}
+
+		/**
+		 * <a>标签加增加事件
+		 *window.temp_timer=null;
+		 *window.temp_is_double=false;
+		 */
+		function tokenNodeAddEvent(clickNode) {
+			$(clickNode).click(function(e) {
+				if(window.aa_time){
+					window.aa_double=true;
+					return;
+				}else{
+					window.aa_time = setTimeout(function(){
+						if(!window.aa_double){
+							var node = e.currentTarget;
+							nodeStateClick(node);
+							tokenCallBack("click", node);
+						}
+						clearTimeout(window.aa_time);
+						window.aa_time = null;
+						window.aa_double=false;
+					},300);
+				}
+			});
+
+			$(clickNode).dblclick(function(e) {
+				
+				if(window.aa_time){
+					window.aa_double=true;
+					var node = e.currentTarget;
+					tokenCallBack("dbclick", node);
+					return;
+				}else{
+					window.aa_time = setTimeout(function(){
+						if(!window.aa_double){
+							var node = e.currentTarget;
+							nodeStateClick(node);
+							tokenCallBack("click", node);
+						}
+						clearTimeout(window.aa_time);
+						window.aa_time = null;
+						window.aa_double=false;
+					},300);
+				}
+				
+				
+			});
+
+			$(clickNode).on("selectstart", function(e) {
+				return false;
+			});
+		}
+
+		function nodeStateClick(node) {
+			var bsr = blockSelecter();
+			var divlist = $(innerObj.domElement).children().find(bsr);
+			$(divlist).children("a.word-token-editer-a-click").removeClass("word-token-editer-a-click");
+			$(node).addClass("word-token-editer-a-click");
+		}
+
+		/**
+		 * 回调处理
+		 */
+		function tokenCallBack(action, node) {
+			if (wtediter.callback) {
+				var text = node.textContent;
+				var result = {
+					action : action,
+					text : text,
+					types : [],
+					node : node
+				};
+
+				var classNames = getAllClass($(node)).classList();
+
+				//去除组件样式
+				$.each(classNames, function(i, className) {
+					if (className.indexOf("word-token-editer") < 0) {
+						result.types.push(className);
+					}
+				});
+				innerObj.currentNode = node;
+				wtediter.callback(result);
+			}
+		}
+
+		/**
+		 * 获取一个dom对象的全部样式
+		 */
+		function getAllClass(classNode) {
+			var classText = $(classNode).attr("class");
+			var obj = {
+				classText : "",
+				classList : function() {
+					var text = obj.classText;
+					var classList = [];
+					if (text && text.length > 0) {
+						classList = text.split(" ");
+					}
+					return classList;
+				}
+			};
+			if (classText) {
+				obj.classText = classText;
+			}
+			return obj;
+		}
+
+		/**
+		 * 替换或在前面插入结点
+		 * @param {Object} newNode
+		 * @param {Object} node
+		 * @param {Object} parentNode
+		 * @param {Object} insert
+		 */
+		function replaceOrInsertBefore(newNode, node, parentNode, insert) {
+			if (insert) {
+				parentNode.insertBefore(newNode, node);
+			}
+			else {
+				parentNode.replaceChild(newNode, node);
+			}
+		}
+
+		function getNodeName(node) {
+			var nodeName = null;
+			try {
+				if (node && node.nodeName) {
+					nodeName = node.nodeName;
+				}
+			}
+			catch(e) {
+			}
+			return nodeName;
+		}
+
+		function refreshEditStateOfBackDel() {
+			editState.canBack = false;
+			editState.canDel = false;
+			if (editState.isFocus) {
+				var se = window.getSelection();
+				var anchorNode = se.anchorNode;
+				var focusNode = se.focusNode;
+				var anchorOffset = se.anchorOffset;
+				var focusOffset = se.focusOffset;
+
+				var mouseNode = innerObj.mouseDownNode;
+
+				if (anchorNode && focusNode && anchorNode == focusNode && (mouseNode == null || (mouseNode && mouseNode == anchorNode))) {
+					var pnode = anchorNode.parentNode;
+					var pnodeName = getNodeName(pnode);
+
+					var nodeName = getNodeName(anchorNode);
+					var nodeText = anchorNode.textContent;
+					var nodeLen = 0;
+
+					if (nodeText) {
+						nodeLen = nodeText.length;
+					}
+					if (nodeName == "#text" && pnodeName != "A") {
+						if (nodeLen > 0 && focusOffset > 0) {
+							editState.canBack = true;
+						}
+						if (nodeLen > 0 && focusOffset < nodeLen) {
+							editState.canDel = true;
+						}
+					}
+				}
+			}
+		}
+
+		function seteditStateFocus(b) {
+			editState.isFocus = b;
+		}
+
+	}
+});

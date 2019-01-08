@@ -1,0 +1,371 @@
+<template>
+  <section class="cms-body" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>
+    <div class="main">
+      <!-- 标题栏 -->
+      <div style="" class="art-title">
+        {{dataInfo.fName}}
+      </div>
+      <div class="art-body">
+        <!-- 操作控制面板 -->
+        <div class="inner-bord">
+          <div class="kz-pannel">
+            <el-button-group class="hc-xq">
+              <el-button @click="switchHuaci(true)" v-bind:class="{current:isSwitch===true}">划词</el-button>
+              <el-button @click="switchHuaci(false)" v-bind:class="{current:isSwitch===false}">详情</el-button>
+            </el-button-group>
+            <ul class="class-type" v-bind:class="{hide:isSwitch===false}">
+              <li v-bind:class="{current:wordToken.currentCName === 'jbmc'}"><a @click="switchHCType('jb')"><i class="icon iconfont icon-jibing jbmc"></i>疾病</a></li>
+              <li v-bind:class="{current:wordToken.currentCName === 'ypmc_zn'}"><a @click="switchHCType('yp')"><i class="icon iconfont icon-jibing ypmc_zn"></i>药品</a></li>
+              <li v-bind:class="{current:wordToken.currentCName === 'jymc'}"><a @click="switchHCType('zb')"><i class="icon iconfont icon-jibing jymc"></i>指标</a></li>
+            </ul>
+          </div>
+          <!-- 内容操作区 -->
+          <div id="con_nonParticipleArea" v-bind:class="{hide:isSwitch===false}">
+            <div class="word-token-editer-main">
+              <div class="word_title">【概述】</div>
+              <div class="word_content word-token-editer-div" v-html="dataInfo.fGaiShuDis"></div>
+              <div class="word_title">【临床表现】</div>
+              <div class="word_content word-token-editer-div" v-html="dataInfo.fLinChuangTeDianDis"></div>
+              <div class="word_title">【诊断要点】</div>
+              <div class="word_content word-token-editer-div" v-html="dataInfo.fZhiLiaoDis"></div>
+            </div>
+          </div>
+          <!-- 预览 区域-->
+          <div id="con_ProviewArea" v-bind:class="{hide:isSwitch}">
+            <div class="word_title">【概述】</div>
+            <div class="word_content word-token-editer-div" v-html="dataInfo.fGaiShuDis"></div>
+            <div class="word_title">【临床表现】</div>
+            <div class="word_content word-token-editer-div" v-html="dataInfo.fLinChuangTeDianDis"></div>
+            <div class="word_title">【诊断要点】</div>
+            <div class="word_content word-token-editer-div" v-html="dataInfo.fZhiLiaoDis"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <el-button type="primary" @click="add(false)">校对完成</el-button>
+      </div>
+    </div>
+    <!-- 右侧栏 -->
+    <div class="right-side"></div>
+
+  </section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+
+export default {
+  mixins: [formMixns], //普通表单变量
+  data() {
+    let required = va.required("此项必填");
+    return {
+      memberGroup: [], //业务变量会员组
+
+      rules: {
+        //校验规则
+        orgName: [required],
+        orgCode: [required],
+        orgAppid: [required],
+        orgAppsecret: [required]
+      },
+      isSwitch: true, //划词状态(true-划词,false-预览)
+      wordToken: {
+        currentCName: null,
+        currenCoreName: null,
+        currenType: null,
+        editer: null,
+        currentNode: null
+      }
+    };
+  },
+  methods: {
+    switchHuaci(value) {
+      this.isSwitch = value;
+    },
+    switchHCType(value) {
+      switch (value) {
+        case "jb":
+          this.wordToken.currentCName = "jbmc";
+          this.wordToken.currenType = "jiBingKnowledgeService";
+          break;
+        case "yp":
+          this.wordToken.currentCName = "ypmc_zn";
+          this.wordToken.currenType = "yaoPinKnowledgeService";
+          break;
+        case "zb":
+          this.wordToken.currentCName = "jymc";
+          this.wordToken.currenType = "zhiBiaoKnowledgeService";
+          break;
+      }
+    },
+    getKnowledgeList() {},
+    iniWte() {
+      var self = this;
+      var con_ProviewArea = document.getElementById("con_ProviewArea");
+      var con_nonParticipleArea = document.getElementById(
+        "con_nonParticipleArea"
+      );
+
+      var text = $(con_nonParticipleArea)
+        .find(".word_title:first")
+        .parent()
+        .html();
+
+      var wte = $.wordTokenEditer({
+        editable: true,
+        dom: $(con_nonParticipleArea),
+        block: "word_content",
+        disableColor: "#aaa",
+        text: text,
+        callback: function(obj) {
+          var action = obj.action;
+          var types = obj.types;
+          var text = obj.text;
+
+          if (action == "click" && self.isSwitch) {
+            /*
+			var cname = window.wordToken.currentCName;
+			if(cname && cname == "wordTokenClean"){
+				wte.cleanNode(obj.node);
+				deleteWord(text,types);
+				$(con_ProviewArea.getDom()).html(wte.contents());
+			}
+			*/
+            if ($(obj.node).attr("id")) {
+              window.domId = $(obj.node).attr("id");
+            }
+
+            if ($(obj.node).hasClass("word_error")) {
+              var ds = view.get("#ds_verifyDetail").getData();
+              ds.each(function(data) {
+                if ($(obj.node).attr("id") == data.get("domId")) {
+                  view
+                    .get("#ds_verifyDetail")
+                    .getData()
+                    .setCurrent(data);
+                  return;
+                }
+              });
+
+              if ($(obj.node).hasClass("word_temp")) {
+                view.set("#btn_process.visible", true);
+              } else {
+                view.set("#btn_process.visible", false);
+              }
+
+              view.get("#dialog_error").show();
+            }
+
+            for (var i = 0; i < types.length; i++) {
+              for (var j = 0; j < window.classAry.length; j++) {
+                if (types[i] == window.classAry[j]) {
+                  window.click_currentCname = types[i];
+                  break;
+                }
+              }
+            }
+
+            view.set("#hc_ybqk.visible", false);
+
+            if (window.temp_currentNode == obj.node) {
+              return;
+            }
+
+            view.id("btn_saveSplitWord").fireEvent("onClick");
+
+            window.temp_currentNode = obj.node;
+
+            var ary = [];
+            view.set("#txt_normal.text", text);
+            var datas = view.get("#ds_Participle").getData();
+            datas.each(function(data) {
+              if (data.get("sourceWord") == text) {
+                var para = {};
+                para = {
+                  word: data.get("word"),
+                  isCore: data.get("isCore"),
+                  iwg: data.get("isWordGroup")
+                };
+                ary.push(para);
+              }
+            });
+
+            var ds = view.get("#ds_splitWord").getData();
+            ds.clear();
+            for (var i = 0; i < ary.length; i++) {
+              var bol = false;
+              if (ary[i].iwg == "是") {
+                bol = true;
+              }
+              var bolCore = false;
+              if (ary[i].isCore == "1") {
+                bolCore = true;
+              }
+              ds.insert({
+                word: ary[i].word,
+                core: bolCore,
+                wordGroup: bol
+              });
+            }
+            view.set("#hc_normal.visible", true);
+
+            window.sourceText = text;
+          } else if (action == "dbclick" && self.isSwitch) {
+            if ($(obj.node).hasClass("word_temp")) {
+              return;
+            }
+            window.temp_currentNode = null;
+
+            //var ds = view.get("#ds_splitWord").getData();
+            //ds.clear();
+            //view.set("#txt_normal.text", "");
+            //deleteWord(text, types);
+            wte.cleanNode(obj.node);
+            $(con_ProviewArea).html(wte.contents());
+          } else if (action == "select") {
+            //view.set("#hc_ybqk.visible", false);
+            //view.set("#hc_normal.visible", true);
+
+            if (self.wordToken.currentCName) {
+              if (text.length == 1) {
+                alert("所选的词长度必须大于1!");
+                wte.cleanNode(obj.node);
+                return;
+              }
+              var cNmae = self.wordToken.currentCName;
+              window.click_currentCname = self.wordToken.currentCName;
+              var isTrue = true;
+              //isTrue = isValidWord(text);
+              if (!isTrue) {
+                alert("您所选的词包含不合法字符,请重新选择!");
+                wte.cleanNode(obj.node);
+              } else {
+                var aryName = [];
+                aryName.push(self.wordToken.currentCName);
+                if (self.wordToken.currenCoreName != "") {
+                  aryName.push(self.wordToken.currenCoreName);
+                }
+                //划词自动保存上一个划词所分的词
+                // var ds = view.get("#ds_splitWord").getData();
+                // if (ds) {
+                //   view.get("#btn_saveSplitWord").fireEvent("onClick");
+                // }
+
+                // addWord(text, aryName);
+                wte.tokenNode(obj.node, aryName);
+                $(con_ProviewArea).html(wte.contents());
+
+                window.temp_currentNode = obj.node;
+              }
+              //划词时划所有相同名词
+              //this.tokenNodeByText(text,[window.wordToken.currentCName]);
+            } else {
+              alert("请选择一种划类型!");
+              wte.cleanNode(obj.node);
+            }
+          }
+        }
+      });
+    },
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let paras = { canShu: JSON.stringify({ pid: id }) };
+      axios
+        .all([
+          axios.post(api.jibingDetail, paras) //axios批量发送请求
+        ])
+        .then(
+          axios.spread(data => {
+            this.dataInfo = data.body; //将用户数据复制给dataInfo
+            this.loading = false;
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    },
+
+    add(state) {
+      //自定义一下处理方法
+      let paras = { canShu: JSON.stringify(this.dataInfo) };
+      this.saveDataInfo(state, this.$api.orgEdit, paras, "list");
+    },
+    update() {}
+  },
+  created() {
+    //初始获取数据
+    this.getDataInfo(this.id);
+  },
+  updated() {
+    //初始获取数据
+    this.iniWte();
+  }
+};
+</script>
+
+<style>
+.right-side {
+  float: right;
+  width: 380px;
+}
+.main {
+  color: #333;
+  margin-right: 400px;
+  border: 1px solid #e6ebf5;
+  border-width: 0 1px 0 0;
+}
+/*标题*/
+.art-title {
+  font-size: 24px;
+  text-align: center;
+  padding: 15px 0;
+  border-bottom: 2px solid #e6ebf5;
+}
+.art-body {
+  padding: 20px;
+}
+.art-body .inner-bord{
+  border: 1px solid #e6ebf5;
+}
+/* 控制条*/
+.kz-pannel {
+  background-color: #f5f6f5;
+  padding: 10px 20px;
+}
+/*划词/预览切换样式*/
+.kz-pannel .hc-xq .current {
+  color: #fff;
+  background: #409eff;
+}
+
+/*划词类型按钮*/
+.kz-pannel ul.class-type {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 50px;
+}
+.kz-pannel ul.class-type li {
+  display: table-cell;
+
+  font-size: 14px;
+  height: 32px;
+  vertical-align: middle;
+  padding: 0 20px;
+}
+.kz-pannel ul.class-type li.current {
+  border: 1px solid #e6ebf5;
+  background: #fff;
+}
+.kz-pannel ul.class-type li i {
+  font-size: 16px;
+}
+.main .form-footer {
+  padding: 15px 0;
+  text-align: center;
+}
+</style>

@@ -1,0 +1,252 @@
+<template>
+  <section class="cms-body" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>        
+    <el-form  ref="form" :model="dataInfo" :rules="rules" 
+        class="cms-form" label-width="0">
+        <el-form-item  class="flex-100"  prop="orgName" >
+               <el-input
+  type="textarea"
+  :rows="15"
+  v-html="content">
+</el-input>
+         </el-form-item>
+         <div class="form-footer">
+           <!-- <el-button type="warning" @click="add(true)">保存并继续添加</el-button> -->
+               <el-button type="primary"  @click="add(false)">校对完成</el-button>
+           <!-- <el-button type="info" @click="reset">重置</el-button> -->
+           <!-- <span class="gray">
+              选择“提交并继续添加”按钮会停留在添加页面；选择“提交”按钮后将跳转到对应的列表页</span>  -->
+         </div>
+    </el-form>
+</section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+
+export default {
+  mixins: [formMixns], //普通表单变量
+  data() {
+    let self = this;
+
+    let required = va.required("此项必填");
+    return {
+      memberGroup: [], //业务变量会员组
+
+      rules: {
+        //校验规则
+        orgName: [required],
+        orgCode: [required],
+        orgAppid: [required],
+        orgAppsecret: [required]
+      },
+      content: "本品非<a class='aunderline jbmc'>感冒</a>类"
+    };
+  },
+  methods: {
+    iniWte() {
+      var con_ProviewArea = view.id("con_ProviewArea");
+      var con_nonParticipleArea = view.id("con_nonParticipleArea");
+
+      var text = $(con_nonParticipleArea.getDom())
+        .find(".word_title:first")
+        .parent()
+        .html();
+
+      var wte = $.wordTokenEditer({
+        editable: true,
+        dom: $(con_nonParticipleArea.getDom()),
+        block: "word_content",
+        disableColor: "#aaa",
+        text: text,
+        callback: function(obj) {
+          var action = obj.action;
+          var types = obj.types;
+          var text = obj.text;
+
+          if (action == "click" && isSwitch) {
+            /*
+			var cname = window.wordToken.currentCName;
+			if(cname && cname == "wordTokenClean"){
+				wte.cleanNode(obj.node);
+				deleteWord(text,types);
+				$(con_ProviewArea.getDom()).html(wte.contents());
+			}
+			*/
+            if ($(obj.node).attr("id")) {
+              window.domId = $(obj.node).attr("id");
+            }
+
+            if ($(obj.node).hasClass("word_error")) {
+              var ds = view.get("#ds_verifyDetail").getData();
+              ds.each(function(data) {
+                if ($(obj.node).attr("id") == data.get("domId")) {
+                  view
+                    .get("#ds_verifyDetail")
+                    .getData()
+                    .setCurrent(data);
+                  return;
+                }
+              });
+
+              if ($(obj.node).hasClass("word_temp")) {
+                view.set("#btn_process.visible", true);
+              } else {
+                view.set("#btn_process.visible", false);
+              }
+
+              view.get("#dialog_error").show();
+            }
+
+            for (var i = 0; i < types.length; i++) {
+              for (var j = 0; j < window.classAry.length; j++) {
+                if (types[i] == window.classAry[j]) {
+                  window.click_currentCname = types[i];
+                  break;
+                }
+              }
+            }
+
+            view.set("#hc_ybqk.visible", false);
+
+            if (window.temp_currentNode == obj.node) {
+              return;
+            }
+
+            view.id("btn_saveSplitWord").fireEvent("onClick");
+
+            window.temp_currentNode = obj.node;
+
+            var ary = [];
+            view.set("#txt_normal.text", text);
+            var datas = view.get("#ds_Participle").getData();
+            datas.each(function(data) {
+              if (data.get("sourceWord") == text) {
+                var para = {};
+                para = {
+                  word: data.get("word"),
+                  isCore: data.get("isCore"),
+                  iwg: data.get("isWordGroup")
+                };
+                ary.push(para);
+              }
+            });
+
+            var ds = view.get("#ds_splitWord").getData();
+            ds.clear();
+            for (var i = 0; i < ary.length; i++) {
+              var bol = false;
+              if (ary[i].iwg == "是") {
+                bol = true;
+              }
+              var bolCore = false;
+              if (ary[i].isCore == "1") {
+                bolCore = true;
+              }
+              ds.insert({
+                word: ary[i].word,
+                core: bolCore,
+                wordGroup: bol
+              });
+            }
+            view.set("#hc_normal.visible", true);
+
+            window.sourceText = text;
+          } else if (action == "dbclick" && isSwitch) {
+            if ($(obj.node).hasClass("word_temp")) {
+              return;
+            }
+            window.temp_currentNode = null;
+
+            var ds = view.get("#ds_splitWord").getData();
+            ds.clear();
+            view.set("#txt_normal.text", "");
+            deleteWord(text, types);
+            wte.cleanNode(obj.node);
+            $(con_ProviewArea.getDom()).html(wte.contents());
+          } else if (action == "select") {
+            view.set("#hc_ybqk.visible", false);
+            view.set("#hc_normal.visible", true);
+
+            if (window.wordToken.currentCName) {
+              if (text.length == 1) {
+                dorado.MessageBox.alert("所选的词长度必须大于1!");
+                wte.cleanNode(obj.node);
+                return;
+              }
+              var cNmae = window.wordToken.currentCName;
+              window.click_currentCname = window.wordToken.currentCName;
+              var isTrue = true;
+              //isTrue = isValidWord(text);
+              if (!isTrue) {
+                dorado.MessageBox.alert("您所选的词包含不合法字符,请重新选择!");
+                wte.cleanNode(obj.node);
+              } else {
+                var aryName = [];
+                aryName.push(window.wordToken.currentCName);
+                if (window.wordToken.currenCoreName != "") {
+                  aryName.push(window.wordToken.currenCoreName);
+                }
+                //划词自动保存上一个划词所分的词
+                var ds = view.get("#ds_splitWord").getData();
+                if (ds) {
+                  view.get("#btn_saveSplitWord").fireEvent("onClick");
+                }
+
+                addWord(text, aryName);
+                wte.tokenNode(obj.node, aryName);
+                $(con_ProviewArea.getDom()).html(wte.contents());
+
+                window.temp_currentNode = obj.node;
+              }
+              //划词时划所有相同名词
+              //this.tokenNodeByText(text,[window.wordToken.currentCName]);
+            } else {
+              wte.cleanNode(obj.node);
+            }
+          }
+        }
+      });
+    },
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let paras = { canShu: JSON.stringify({ id: id }) };
+      axios
+        .all([
+          axios.post(api.orgQueryOne, paras) //axios批量发送请求
+        ])
+        .then(
+          axios.spread(data => {
+            this.dataInfo = data.body; //将用户数据复制给dataInfo
+            this.dataInfo.orgName = "";
+            this.dataInfo.orgCode = "";
+            this.dataInfo.orgAppid = "";
+            this.dataInfo.orgAppsecret = "";
+            this.$refs["form"].resetFields();
+            this.loading = false;
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    },
+
+    add(state) {
+      //自定义一下处理方法
+      let paras = { canShu: JSON.stringify(this.dataInfo) };
+      this.saveDataInfo(state, this.$api.orgEdit, paras, "list");
+    },
+    update() {}
+  },
+  created() {
+    //初始获取数据
+    this.getDataInfo(this.id);
+  }
+};
+</script>
+
+<style>
+</style>

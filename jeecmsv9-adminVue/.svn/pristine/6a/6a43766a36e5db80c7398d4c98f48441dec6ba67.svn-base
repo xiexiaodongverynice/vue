@@ -1,0 +1,62 @@
+#con_ProviewArea,.word-token-editer-main {
+	font-size: 14px;
+	letter-spacing: 2px;
+	line-height: 30px;
+	padding: 20px;
+	outline: none;
+}
+
+.word-token-editer-div {
+	line-height: 30px;
+	outline: none;
+}
+.main .hide{
+	display: none !important;
+}
+.word-token-editer-a {
+	color: #00F;
+	/* text-decoration: underline; */
+	margin: 0px 2px;
+	cursor: pointer;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.word-token-editer-a-def {
+
+}
+
+.word-token-editer-a-click {
+	background-color: #ddd;
+}
+
+
+.word-token-editer-a-disabled {
+	color: #aaa;
+}
+/* 疾病颜色 */
+ .jbmc{color:#e66000;} 
+/* 指标 */
+ .jymc{color:#ae21d9;}
+/* 药品 */
+
+ .ypmc_zn,
+ .ypmc_qt,
+ .ypmc{color:#0ad00a;}
+
+#con_nonParticipleArea .aunderline{
+	text-decoration: underline;
+}
+#con_nonParticipleArea .spanstylecss{
+	text-decoration: none;
+}
+#con_ProviewArea span{color:#333;}
+
+/* 预览 */
+#con_ProviewArea a{
+	color: #00F !important;
+	text-decoration: underline !important;
+}

@@ -1,0 +1,199 @@
+<template>
+  <section class="cms-body zsjc-edit" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>
+    <!-- 主工作区 -->
+    <div class="main">
+      <!-- 标题栏 -->
+      <div style="" class="art-title">
+        {{dataInfo.fName}}
+      </div>
+      <div class="art-body">
+        <!-- 操作控制面板 -->
+        <div class="inner-bord">
+          <div class="kz-pannel">
+
+          </div>
+          <!-- 内容操作区 -->
+          <div id="con_edit">
+            <div class="word_title">【概述】</div>
+            <el-input type="textarea" autosize resize="none" class="word_content word-token-editer-div" data-type="fGaiShu" v-model="dataInfo.fGaiShu"></el-input>
+            <div class="word_title">【临床表现】</div>
+            <el-input type="textarea" autosize resize="none" class="word_content word-token-editer-div" data-type="fLinChuangTeDian" v-model="dataInfo.fLinChuangTeDian"></el-input>
+            <div class="word_title">【诊断要点】</div>
+            <el-input type="textarea" autosize resize="none" class="word_content word-token-editer-div" data-type="fZhiLiao" v-model="dataInfo.fZhiLiao"></el-input>
+          </div>
+
+        </div>
+      </div>
+      <div class="form-footer">
+        <el-button type="primary" v-if="dataInfo.checkStatus!=1" @click="updateContext()">提交修改</el-button>
+      </div>
+    </div>
+
+  </section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+
+export default {
+  mixins: [formMixns], //普通表单变量
+  data() {
+    let required = va.required("此项必填");
+    return {
+      rules: {
+        //校验规则
+        orgName: [required],
+        orgCode: [required],
+        orgAppid: [required],
+        orgAppsecret: [required]
+      },
+      wordToken: {
+        currenZiDuan: null //当前操作字段
+      }
+    };
+  },
+  methods: {
+    /**
+     * 提交内容修改
+     */
+    updateContext() {
+      this.loading = true;
+      let nameValueList = [];
+      let gsOjb = {
+        columnName: "fGaiShu",
+        columnValue: this.dataInfo.fGaiShu
+      };
+      let lcOjb = {
+        columnName: "fLinChuangTeDian",
+        columnValue: this.dataInfo.fLinChuangTeDian
+      };
+      let zlOjb = {
+        columnName: "fZhiLiao",
+        columnValue: this.dataInfo.fZhiLiao
+      };
+      nameValueList.push(gsOjb);
+      nameValueList.push(lcOjb);
+      nameValueList.push(zlOjb);
+
+      let paras = {
+        canShu: JSON.stringify({
+          pid: this.id,
+          nameValueList: nameValueList
+        })
+      };
+      axios
+        .all([axios.post(this.$api.updateContext, paras)])
+        .then(
+          axios.spread(data => {
+            this.successMessage("提交成功");
+            setTimeout(() => {
+              this.routerLink("list");
+            }, 1000);
+            this.loading = false;
+          })
+        )
+        .catch(err => {});
+    },
+
+    /**
+     * 保存文章内容
+     */
+    updateDis() {
+      let node = document.getElementById("curNd");
+      if (node) {
+        node.removeAttribute("id");
+      }
+      let api = this.$api; //API地址
+      //this.loading = true;
+      let zd = this.wordToken.currenZiDuan; //得到当前操作节点所在字段名
+      let disContent = $("#con_ProviewArea")
+        .find("[data-type='" + zd + "']")
+        .html(); //得到当前段落内容
+      let paras = {
+        canShu: JSON.stringify({
+          pid: this.id,
+          ziDuan: zd,
+          disContent: disContent
+        })
+      };
+      axios
+        .all([axios.post(api.updateDis, paras)])
+        .then(axios.spread(data => {}))
+        .catch(err => {});
+    },
+
+    /**
+     * 查询页面内容
+     */
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let paras = { canShu: JSON.stringify({ pid: id }) };
+      axios
+        .all([
+          axios.post(api.jibingDetail, paras) //axios批量发送请求
+        ])
+        .then(
+          axios.spread(data => {
+            // for (var filedName in data.body) {
+            //   let str= data.body[filedName];
+            //   data.body[filedName]=str.replace(/<[^>]+>/g, "");
+            // }
+            this.dataInfo = data.body; //将用户数据复制给dataInfo
+            this.loading = false;
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    }
+  },
+  created() {
+    //初始获取数据
+    this.getDataInfo(this.id);
+  },
+  updated() {
+    //初始获取数据
+  }
+};
+</script>
+
+<style>
+.zsjc-edit {
+  color: #333;
+}
+
+.zsjc-edit .main {
+  border: 1px solid #e6ebf5;
+  border-width: 0 1px 0 0;
+}
+/*标题*/
+.art-title {
+  font-size: 24px;
+  text-align: center;
+  padding: 15px 0;
+  border-bottom: 2px solid #e6ebf5;
+}
+.art-body {
+  padding: 20px;
+}
+.art-body .inner-bord {
+  border: 1px solid #e6ebf5;
+}
+/* 控制条*/
+.kz-pannel {
+  background-color: #f5f6f5;
+  padding: 10px 20px;
+}
+#con_edit textarea {
+  line-height: 30px;
+  border: none;
+}
+.main .form-footer {
+  padding: 15px 0;
+  text-align: center;
+}
+</style>

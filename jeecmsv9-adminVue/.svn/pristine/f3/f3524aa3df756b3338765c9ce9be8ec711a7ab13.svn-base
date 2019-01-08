@@ -1,0 +1,40 @@
+import axios from "axios";
+export default {
+    data() {
+        return {
+            loading: true,//遮罩
+            id: this.$route.query.id,//id
+            type: this.$route.query.type,//操作类型
+            dataInfo: {},//基础表单信息
+            form: this.$refs['form']//
+        }
+    },
+    methods: {
+        /**
+         * 获取数据方法
+         * @param {number} id 
+         * @param {object} obj 
+         */
+        getviewData(url) {//获取表格数据   
+            this.loading = true;
+            this.$http
+                .post(url,{id:this.id})
+                .then(res => {
+                    this.loading = false;
+                    if(res.code=='200'){
+                        this.dataInfo = res.body.zb;
+                       
+                    }else{
+                        this.dataInfo={};
+                    }
+                   
+                   
+                })
+                .catch(error => {
+                    this.loading = false;
+                });
+        },
+       
+    }
+
+}

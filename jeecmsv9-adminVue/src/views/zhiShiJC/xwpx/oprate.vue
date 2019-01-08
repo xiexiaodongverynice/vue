@@ -1,0 +1,197 @@
+<template>
+  <section class="cms-body zsjc-oprate" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>
+    <!-- 右侧栏 -->
+    <div class="right-side">
+      <el-tabs v-model="activeName" type="card" @tab-click="tabClick">
+        <el-tab-pane label="知识选择" name="first">
+          <div class="t-title">关联知识列表</div>
+          <el-table :data="knowledgeData.mResult" border style="width: 100%" max-height="250" @row-dblclick="getKnowledgeDetail" ref="table">
+            <el-table-column label="词语" prop="name" align="center"></el-table-column>
+            <el-table-column prop="name" label="操作" align="center" width="55">
+              <div slot-scope="scope">
+                <cms-button type="delete" @click.native="removeLinkData(scope.row)"></cms-button>
+              </div>
+            </el-table-column>
+          </el-table>
+          <div class="t-title t-form">
+            <el-form class="search">
+              <el-form-item label="备选知识列表：">
+                <el-row :gutter="24">
+                  <el-col :span="18">
+                    <el-input placeholder="搜索关键词" size="mini" v-model="knowledgeParas.input" prefix-icon="el-icon-search">
+                    </el-input>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-button type="primary" size="mini" style="min-width:30px;" @click="getKnowledgeList(2)">go</el-button>
+                  </el-col>
+                </el-row>
+              </el-form-item>
+            </el-form>
+          </div>
+          <el-table :data="knowledgeData.likeResultList" border style="width: 100%" max-height="250" @row-dblclick="getKnowledgeDetail" ref="table">
+
+            <el-table-column label="词语" prop="name" align="center"></el-table-column>
+            <el-table-column prop="name" label="操作" align="center" width="55">
+              <div slot-scope="scope">
+                <cms-button type="add" @click.native="addLinkData(scope.row)"></cms-button>
+              </div>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+        <el-tab-pane label="划词结果" name="second">
+          <div class="t-title">划词结果
+            <!-- <div class="words-type">
+              <button class="jb" @click="switchWordsType('jbmc')" v-bind:class="{current:wordsType === 'jbmc'}"></button>
+              <button class="yp" @click="switchWordsType('ypmc')" v-bind:class="{current:wordsType === 'ypmc'}"></button>
+              <button class="zb" @click="switchWordsType('jymc')" v-bind:class="{current:wordsType === 'jymc'}"></button>
+            </div> -->
+          </div>
+          <el-table :data="AllWords" stripe border style="width: 100%" max-height="400">
+            <el-table-column label="词语" prop="name" align="center">
+            </el-table-column>
+            <el-table-column prop="name" label="操作" align="center" width="55">
+              <div slot-scope="scope">
+                <cms-button type="delete" @click.native="wordDelete(scope.row)"></cms-button>
+              </div>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+
+      <el-dialog :visible.sync="dialogVisible" :close-on-click-modal=false center>
+        <div class="art-title">{{knowledName}}</div>
+        <div id="knowledgeDetail">
+          <div v-for="item in knowledgeDetail">
+            <div class="word_title">【{{item.title}}】</div>
+            <div v-html="item.content"></div>
+          </div>
+        </div>
+        <span slot="footer" class="dialog-footer">
+          <el-button type="primary" @click="dialogVisible = false">关 闭</el-button>
+        </span>
+      </el-dialog>
+    </div>
+    <!-- 主工作区 -->
+    <div class="main">
+      <!-- 标题栏 -->
+      <div class="art-title">
+        <a class="fanye pre" v-if="prePid!=null" @click="fanye(prePid)">上一条</a>
+        <div style="margin:0 70px;">{{dataInfo.zuheXueNames}}</div>
+        <div class="fu-biao-ti">
+          <span v-if="dataInfo.checkTime">校对时间：{{dataInfo.checkTime}}</span>
+          <span v-if="dataInfo.checkUser">校对人：{{dataInfo.checkUser}}</span>
+        </div>
+        <a class="fanye next" v-if="nextPid!=null" @click="fanye(nextPid)">下一条</a>
+      </div>
+      <div class="art-body">
+        <!-- 操作控制面板 -->
+        <div class="inner-bord">
+          <div class="kz-pannel">
+            <!-- <el-button-group class="hc-xq">
+              <el-button @click="switchHuaci(true)" v-bind:class="{current:isSwitch===true}">划词</el-button>
+              <el-button @click="switchHuaci(false)" v-bind:class="{current:isSwitch===false}">详情</el-button>
+            </el-button-group> -->
+            <ul class="class-type" v-bind:class="{hide:isSwitch===false}">
+              <li v-bind:class="{current:wordToken.currentCName === 'jbmc'}"><a @click="switchHCType('jbmc')"><i class="icon iconfont icon-jibing jbmc"></i>疾病</a></li>
+              <!-- <li v-bind:class="{current:wordToken.currentCName === 'ypmc_qt'||wordToken.currentCName === 'ypmc_zn'}"><a @click="switchHCType('ypmc_qt')"><i class="icon iconfont icon-jibing ypmc_qt"></i>药品</a></li> -->
+              <!-- <li v-bind:class="{current:wordToken.currentCName === 'jymc'}"><a @click="switchHCType('jymc')"><i class="icon iconfont icon-jibing jymc"></i>指标</a></li> -->
+            </ul>
+          </div>
+          <!-- 内容操作区 -->
+          <div id="con_nonParticipleArea" v-bind:class="{hide:isSwitch===false}">
+            <template v-for="item in dataInfo.disList">
+              <div class="word_title">【{{item.title}}】</div>
+              <div class="word_content word-token-editer-div" :data-type="item.column" v-html="item.content"></div>
+            </template>
+
+          </div>
+          <!-- 预览 区域-->
+          <div id="con_ProviewArea" v-bind:class="{hide:isSwitch}">
+            <template v-for="item in dataInfo.disList">
+              <div class="word_title">【{{item.title}}】</div>
+              <div v-html="item.content"></div>
+            </template>
+
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <el-button type="primary" v-if="dataInfo.checkStatus!='1'" @click="updateStatus()">校对完成</el-button>
+      </div>
+      <div class="statu-mark" v-if="dataInfo.checkStatus=='1'"></div>
+    </div>
+
+  </section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+import wordEdit from "@/mixins/wordEdit";
+
+export default {
+  mixins: [formMixns, wordEdit], //普通表单变量
+
+  data() {
+    return {
+      beanId: "zsjcZhongYiYangShengXwpxService",
+      dialogVisible: false,
+      prePid: null,
+      nextPid: null
+    };
+  },
+  methods: {
+    /**
+     * 查询页面内容
+     */
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let listCanShu = sessionStorage.getItem("xwListCanShu");
+      let canShu = {};
+      if (listCanShu && listCanShu != "undefined") {
+        canShu = JSON.parse(listCanShu);
+      }
+
+      canShu.pid = id;
+      let paras = { canShu: JSON.stringify(canShu) };
+      axios
+        .all([
+          axios.post(api.xwpxDetail, paras) //axios批量发送请求
+        ])
+        .then(
+          axios.spread(data => {
+            this.loading = false;
+            this.dataInfo = data.body.detailData; //将用户数据复制给dataInfo
+            this.nextPid = data.body.nextPid;
+            this.prePid = data.body.prePid;
+            if (this.wte != null) {
+              this.wte = null;
+              this.iniWte();
+            }
+            // this.wte.refresh();
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    }
+  },
+  created() {
+    //初始获取数据
+    this.getDataInfo(this.id);
+  },
+  updated() {
+    //初始获取数据
+    this.iniWte();
+    // 详情中链接点击弹出知识详情
+    this.xqHrefClick();
+  }
+};
+</script>
+
+<style>
+</style>

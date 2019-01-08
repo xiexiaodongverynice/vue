@@ -1,0 +1,160 @@
+<template>
+  <section class="cms-body" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>        
+    <el-form  ref="form" :model="dataInfo" :rules="rules" 
+        class="cms-form" label-width="162px">
+        <el-form-item label="机构id" class="flex-50"  prop="orgId">
+                <el-select v-model="dataInfo.orgId">
+                      <el-option 
+                        v-for="(item,index) in memberGroup" 
+                        :key="index"
+                        :label="item.orgName"
+                        :value="item.orgCode"
+                        ></el-option>
+                </el-select>
+         </el-form-item>
+          
+       <el-form-item label="指标编码" class="flex-50" prop="zbbm">
+               <el-input v-model="dataInfo.zbbm" class="cms-width"></el-input>
+         </el-form-item>
+          <el-form-item label="指标名称" class="flex-50" prop="zbmc">
+               <el-input v-model="dataInfo.zbmc" class="cms-width"></el-input>              
+         </el-form-item>
+          
+       <el-form-item label="生理变化解释" class="flex-100"  prop="slbhjs">
+               <el-input v-model="dataInfo.slbhjs" class="cms-width" type="textarea"></el-input>
+       </el-form-item>
+        
+       <el-form-item label="病理增高解释" class="flex-100"  prop="blzgjs">
+               <el-input v-model.number="dataInfo.blzgjs" class="cms-width" type="textarea"></el-input>
+         </el-form-item>
+          <el-form-item label="病理降低解释" class="flex-100" prop="bljdjs">
+               <el-input v-model="dataInfo.bljdjs" class="cms-width"  type="textarea"></el-input>              
+         </el-form-item>
+       <el-form-item label="健康指导" class="flex-100" prop="jkzd">
+               <el-input v-model="dataInfo.jkzd" class="cms-width" type="textarea"></el-input>
+         </el-form-item>
+         <div class="cms-list-header flex-between">
+            <el-button type="primary" 
+             icon="el-icon-plus"
+              @click="routerLink('/target/attachedadd','save',id)"
+              v-perms="'/target/attachedadd'"
+               
+              >添加</el-button>
+             
+            <!-- 右操作 -->
+        </div>
+        <!-- 表格 -->
+         <el-table :data="tableData" stripe style="width: 100%" @selection-change="checkIds">
+             <el-table-column type="selection" width="65" align="center"></el-table-column>
+              <el-table-column prop="danwei" label="单位" align="center"></el-table-column>
+              <el-table-column prop="yblx" label="样本类型" align="center"></el-table-column>
+              <!-- <el-table-column prop="sytj" label="适用条件" align="center"> </el-table-column> -->
+              <el-table-column prop="agedi" label="年龄低值"  align="center"> </el-table-column>
+              <el-table-column prop="agegao" label="年龄高值"   align="center"> </el-table-column>
+              <el-table-column prop="agedw" label="年龄单位"  align="center"> </el-table-column>
+              <el-table-column prop="yiqi" label="仪器"  align="center"> </el-table-column>
+              <el-table-column prop="updateTime" label="更新时间"  align="center"> </el-table-column>
+              <el-table-column prop="updateUser" label="更新用户"  align="center"> </el-table-column>
+              <el-table-column prop="name" label="操作"   align="center">
+                <div slot-scope="scope">
+                    <cms-button type="edit" @click.native="routerLink('/target/attachededit','update',scope.row.id)"
+                        v-perms="'/target/attachededit'"
+                    
+                    ></cms-button>
+                     <cms-button type="delete" @click.native="deleteBatch($api.deleteCb,scope.row.id,user)"
+                       v-perms="'/target/delete'"
+                     ></cms-button>
+                        <cms-button type="view" @click.native="routerLink('/target/attachedview','',scope.row.id)"
+                       v-perms="'/target/attachedview'"
+                     ></cms-button>
+                </div>
+               </el-table-column>
+         </el-table>
+         <!-- 表格底部 -->
+        <div class="cms-list-footer">
+                <!-- cms分页组件 -->
+              <div class="cms-left">
+                <el-button :disabled="disabled" @click="deleteBatch($api.deleteCb,ids,user)"
+                  v-perms="'/target/delete'"
+                >批量删除</el-button>
+              </div>
+          </div> 
+         <div class="form-footer">
+               <el-button type="primary"  @click="update()">修改</el-button>
+           <el-button type="info" @click="reset">重置</el-button>
+         </div>
+    </el-form>
+</section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+import listMixins from '@/mixins/view'
+export default {
+  mixins: [formMixns,listMixins], //普通表单变量
+  data() {
+    let required = va.required('此项必填');
+    let number = va.number('只能输入数字');
+    return {
+      memberGroup: [], //业务变量会员组
+      param:{
+        canShu:{
+               id:'',
+              user:localStorage.getItem('userName')
+            },
+      },
+      user:'',
+      rules: {
+        //校验规则
+        orgId: [required],
+        zbbm: [required,number],
+        zbmc: [required],
+      }
+    };
+  },
+  methods: {
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let params={canShu:JSON.stringify({ id: id })}
+      axios
+        .all([
+          axios.post(api.getZhibiaozb, params), //axios批量发送请求
+          axios.post(api.gettJJglist)
+        ])
+        .then(
+          axios.spread((data, memberGroup) => {
+            this.dataInfo = data.body.zb; //将用户数据复制给dataInfo
+            this.dataInfo.updateUser = localStorage.getItem('userName')
+            this.memberGroup = memberGroup.body; //将用户组数据复制给dataInfo
+            this.$refs["form"].resetFields();
+            this.loading = false;
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    },
+    update() {
+      this.param.canShu = JSON.stringify(this.dataInfo);
+      this.updateDataInfo(this.$api.updateZb, this.param, "targetlist");
+    }
+  },
+  created() {
+    //初始获取数据
+    this.param.canShu.id = this.id;
+    this.user =  this.param.canShu.user 
+    this.params.canShu = JSON.stringify(this.param.canShu);
+    this.getviewData(this.$api.getZhibiaozb,this.params);
+    this.getDataInfo(this.id);
+  }
+};
+</script>
+
+<style>
+
+
+</style>

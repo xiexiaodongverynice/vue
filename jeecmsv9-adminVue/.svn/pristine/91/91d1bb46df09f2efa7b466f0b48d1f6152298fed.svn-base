@@ -1,0 +1,392 @@
+import Vue from 'vue'
+import Router from 'vue-router'
+import login from '@/components/login'
+import body from '@/components/body'
+import work from '@/components/work.vue'
+import error from '@/components/404.vue'
+import childView from '@/components/appMain.vue'
+const resourceTree = resolve => { require(['@/views/interface/resource/tree.vue'], resolve) }; //
+const resourceList = resolve => { require(['@/views/interface/resource/list.vue'], resolve) }; //
+const resourceEdit = resolve => { require(['@/views/interface/resource/edit.vue'], resolve) }; //
+const resourceReName = resolve => { require(['@/views/interface/resource/rename.vue'], resolve) }; //
+const templateTree = resolve => { require(['@/views/interface/template/tree.vue'], resolve) }; //
+const templateList = resolve => { require(['@/views/interface/template/list.vue'], resolve) }; //
+const templateEdit = resolve => { require(['@/views/interface/template/edit.vue'], resolve) }; //
+const templateReName = resolve => { require(['@/views/interface/template/rename.vue'], resolve) }; //
+const templateSetting = resolve => { require(['@/views/interface/template/setting.vue'], resolve) }; //
+function $importViews(componentName) { //异步加载组件
+    return resolve => {
+        require(['@/views/' + componentName + '.vue'], resolve)
+    }
+}
+
+
+Vue.use(Router)
+    /**
+     * routes==默认路由节点
+     */
+export const routes = [{
+        path: '/login',
+        name: '登录',
+        component: login,
+        hidden: true
+    },
+    {
+        path: '/',
+        name: '欢迎页',
+        meta: {
+            role: 'work'
+        },
+        component: body,
+        iconCls: 'icon-iconfontdesktop',
+        leaf: true, //只有一个节点
+        redirect: '/work',
+        children: [{
+            path: '/work',
+            component: work,
+        }]
+    }
+];
+export const ansycRoutes = [
+    {
+        path: '/',
+        name: '系统管理', //用户管理
+        component: body,
+        iconCls: 'icon-user',
+        meta: {
+            isLink: true
+        },
+        children: [ {
+                path: '/adminGlobal',
+                name: '用户管理', //管理员(全站)
+                component: childView,
+                isParent: true,
+                redirect: '/adminGlobal/list',
+                children: [{
+                    path: '/adminGlobal/list', //管理员列表(全站)
+                    name: '用户列表',
+                    component: resolve => { require(['@/views/user/admin/global/list.vue'], resolve) },
+                }, {
+                    path: '/adminGlobal/edit', //管理员编辑页(全站)
+                    name: '用户编辑',
+                    component: resolve => { require(['@/views/user/admin/global/edit.vue'], resolve) },
+                    hidden: true
+                }, {
+                    path: '/adminGlobal/add', //管理员添加页(全站)
+                    name: '用户添加',
+                    component: resolve => { require(['@/views/user/admin/global/add.vue'], resolve) },
+                    hidden: true
+                }]
+            },{
+                path: '/role', //角色管理
+                name: '角色管理',
+                component: childView,
+                isParent: true,
+                redirect: '/role/list',
+                children: [{
+                        path: '/role/list', //角色管理
+                        name: '角色列表',
+                        component: resolve => { require(['@/views/user/role/list.vue'], resolve) },
+                    },
+                    {
+                        path: '/role/save', //成员添加
+                        name: '角色添加',
+                        component: resolve => { require(['@/views/user/role/edit.vue'], resolve) },
+                        hidden: true
+                    },
+                    {
+                        path: '/role/update', //成员修改
+                        name: '角色修改',
+                        component: resolve => { require(['@/views/user/role/edit.vue'], resolve) },
+                        hidden: true
+                    },
+                    {
+                        path: '/role/members', //成员列表
+                        name: '角色成员列表',
+                        component: resolve => { require(['@/views/user/role/members.vue'], resolve) },
+                        hidden: true
+                    }
+                ]
+            },{
+                path: '/department',
+                name: '部门管理', //部门管理
+                component: childView,
+                isParent: true,
+                redirect: '/department/list',
+                children: [{
+                    path: '/department/tpm',
+                    name: '部门模板', //部门管理
+                    component: resolve => { require(['@/views/user/department/departmentTmp.vue'], resolve) },
+                    children: [{
+                        path: '/department/list', //部门列表
+                        name: '部门列表',
+                        component: resolve => { require(['@/views/user/department/list.vue'], resolve) },
+                    }, {
+                        path: '/department/add', //部门添加
+                        name: '部门添加',
+                        component: resolve => { require(['@/views/user/department/add.vue'], resolve) },
+                    }, {
+                        path: '/department/edit', //部门添加
+                        name: '部门修改',
+                        component: resolve => { require(['@/views/user/department/edit.vue'], resolve) },
+                    }, {
+                        path: '/departmentMember/list', //部门添加
+                        name: '部门成员列表',
+                        component: resolve => { require(['@/views/user/department/memberList.vue'], resolve) },
+                    }]
+                }, ]
+            }, {
+                path: '/group',
+                name: '会员组管理', //会员组管理
+                component: childView,
+                isParent: true,
+                redirect: '/group/list',
+                children: [{
+                    path: '/group/list', //会员组列表
+                    name: '会员组列表',
+                    component: resolve => { require(['@/views/user/group/list.vue'], resolve) },
+                }, {
+                    path: '/group/add', //会员组添加
+                    name: '会员组添加',
+                    component: resolve => { require(['@/views/user/group/add.vue'], resolve) },
+                }, {
+                    path: '/group/edit', //会员组修改
+                    name: '会员组修改',
+                    component: resolve => { require(['@/views/user/group/edit.vue'], resolve) },
+                }]
+            }, 
+             {
+                path: '/message',
+                name: '站内信管理', //站内信管理
+                component: childView,
+                isParent: true,
+                redirect: '/message/list',
+                children: [{
+                    path: '/message/list', //站内信列表
+                    name: '站内信列表',
+                    component: resolve => { require(['@/views/user/message/list.vue'], resolve) },
+                }, {
+                    path: '/message/add', //发送站内信
+                    name: '发送站内信',
+                    component: resolve => { require(['@/views/user/message/add.vue'], resolve) },
+                }, {
+                    path: '/message/seek', //查看站内信
+                    name: '站内信查看',
+                    component: resolve => { require(['@/views/user/message/seek.vue'], resolve) },
+                }, {
+                    path: '/message/reply', //回复站内信
+                    name: '站内信回复',
+                    component: resolve => { require(['@/views/user/message/reply.vue'], resolve) },
+                }, {
+                    path: '/message/forward', //转发站内信
+                    name: '站内信转发',
+                    component: resolve => { require(['@/views/user/message/forward.vue'], resolve) },
+                }]
+            },  {
+                path: '/log',
+                name: '操作日志', //操作日志
+                component: childView,
+                isParent: true,
+                redirect: '/log/list',
+                children: [{
+                    path: '/log/list', //日志列表
+                    name: '日志列表',
+                    component: resolve => { require(['@/views/user/log/list.vue'], resolve) },
+                }]
+            }
+        ]
+    },
+    {
+        path: '/org',
+        component: body,
+        iconCls: 'icon-jigou',
+        name: '机构管理', //
+        meta: {
+            isLink: true
+        },
+        children: [{
+            path: '/orgMange',
+            name: '机构管理', //机构管理
+            component: childView,
+            isParent: true,
+            redirect: '/org/list',
+            children: [{
+                    path: '/org/list', //机构列表
+                    name: '机构列表',
+                    component: resolve => { require(['@/views/org/orgMange/list.vue'], resolve) },
+                },
+                {
+                    path: '/org/save', //机构添加
+                    name: '机构添加',
+                    component: resolve => { require(['@/views/org/orgMange/add.vue'], resolve) },
+                },
+                {
+                    path: '/org/update', //机构添加
+                    name: '机构修改',
+                    component: resolve => { require(['@/views/org/orgMange/edit.vue'], resolve) },
+                }
+            ]
+
+        }, {
+            path: '/target',
+            name: '指标管理', //指标管理
+            component: childView,
+            isParent: true,
+            redirect: '/target/targetlist',
+            children: [{
+                path: '/target/targetlist', //指标主表列表
+                name: '指标列表',
+                component: resolve => { require(['@/views/data/target/targetlist.vue'], resolve) },
+              },
+              {
+                path: '/target/add', //指标主表添加
+                name: '指标添加',
+                component: resolve => { require(['@/views/data/target/targetadd.vue'], resolve) },
+                hidden: true
+              },{
+                path: '/target/edit', //指标主表修改
+                name: '指标修改',
+                component: resolve => { require(['@/views/data/target/targetedit.vue'], resolve) },
+                hidden: true
+              },
+              {
+                path: '/target/targetview', //指标主表查看
+                name: '指标详情',
+                component: resolve => { require(['@/views/data/target/targetview.vue'], resolve) },
+                hidden: true
+              } 
+            ]
+          }]
+    },
+    {
+        path: '/zhiShiJC',
+        component: body,
+        iconCls: 'icon-zhinengjiaoyu-jiuzhengwenju',
+        name: '知识管理', //
+        meta: {
+            isLink: true
+        },
+        children: [
+            {
+            path: '/jiBing',
+            name: '疾病指南', //机构管理
+            component: childView,
+            isParent: true,
+            redirect: '/jiBing/list',
+            children: [{
+                    path: '/jiBing/list', //机构列表
+                    name: '疾病列表',
+                    component: resolve => { require(['@/views/zhiShiJC/jiBing/list.vue'], resolve) },
+                },
+                {
+                    path: '/jiBing/oprate', //机构添加
+                    name: '疾病划词',
+                    component: resolve => { require(['@/views/zhiShiJC/jiBing/oprate.vue'], resolve) },
+                },
+                {
+                    path: '/jiBing/edit', //机构添加
+                    name: '疾病修改',
+                    component: resolve => { require(['@/views/zhiShiJC/jiBing/edit.vue'], resolve) },
+                },
+                {
+                    path: '/jiBing/view', //机构添加
+                    name: '疾病详情',
+                    component: resolve => { require(['@/views/zhiShiJC/jiBing/view.vue'], resolve) },
+                }
+            ]
+
+        } ,
+        {
+            path: '/yaoPin',
+            name: '药品指南', //机构管理
+            component: childView,
+            isParent: true,
+            redirect: '/yaoPin/list',
+            children: [{
+                    path: '/yaoPin/list', //机构列表
+                    name: '药品列表',
+                    component: resolve => { require(['@/views/zhiShiJC/yaoPin/list.vue'], resolve) },
+                },
+                {
+                    path: '/yaoPin/oprate', //机构添加
+                    name: '药品划词',
+                    component: resolve => { require(['@/views/zhiShiJC/yaoPin/oprate.vue'], resolve) },
+                }
+            ]
+        },
+        {
+            path: '/jianCha',
+            name: '检查指南', //机构管理
+            component: childView,
+            isParent: true,
+            redirect: '/jianCha/list',
+            children: [{
+                    path: '/jianCha/list', //机构列表
+                    name: '检查列表',
+                    component: resolve => { require(['@/views/zhiShiJC/jianCha/list.vue'], resolve) },
+                },
+                {
+                    path: '/jianCha/oprate', //机构添加
+                    name: '检查划词',
+                    component: resolve => { require(['@/views/zhiShiJC/jianCha/oprate.vue'], resolve) },
+                }
+            ]
+        },
+        {
+            path: '/jianYan',
+            name: '检验指南', 
+            component: childView,
+            isParent: true,
+            redirect: '/jianYan/list',
+            children: [{
+                    path: '/jianYan/list', //机构列表
+                    name: '检验列表',
+                    component: resolve => { require(['@/views/zhiShiJC/jianYan/list.vue'], resolve) },
+                },
+                {
+                    path: '/jianYan/oprate', //机构添加
+                    name: '检验划词',
+                    component: resolve => { require(['@/views/zhiShiJC/jianYan/oprate.vue'], resolve) },
+                }
+            ]
+        }
+        
+        ]
+    },
+    {
+        path: '/config',
+        component: body,
+        iconCls: 'icon-setting',
+        name: '配置', //
+        meta: {
+            isLink: true
+        },
+        children: [{
+                path: '/siteConfig',
+                isParent: true,
+                name: '站点设置', //站点设置
+                component: resolve => { require(['@/views/config/siteConfig/edit.vue'], resolve) },
+            },{
+                        path: '/globel/loginUpdate',
+						isParent: true,
+                        name: '登录设置', //全局设置-登录设置
+                        component: resolve => { require(['@/views/config/config/loginUpdate.vue'], resolve) },
+                    },
+                    {
+                        path: '/globel/firewallUpdate',
+						isParent: true,
+                        name: '防火墙设置', //全局设置-防火墙设置
+                        component: resolve => { require(['@/views/config/config/firewallUpdate.vue'], resolve) },
+                    }
+        ]
+    },
+    {
+        path: '*',
+        name: '404',
+        component: error,
+        meta: {
+            role: 'index'
+        },
+        hidden: true
+    }
+];

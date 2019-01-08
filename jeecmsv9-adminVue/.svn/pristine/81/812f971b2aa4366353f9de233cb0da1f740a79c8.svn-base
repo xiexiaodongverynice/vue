@@ -1,0 +1,88 @@
+<template>
+  <section v-loading="loading" class="cms-body">
+        <div class="cms-list-header flex-between">
+            <!-- 右操作 -->
+             <div>
+                <el-select v-model="canShu.queryStatus" @change="query">
+                     <el-option label="状态" value=""></el-option>
+                     <el-option label="启用" value="0"></el-option>
+                     <el-option label="禁用" value="1"></el-option>
+                </el-select>
+                 <cms-input  label="机构名称" v-model="canShu.queryOrgName"></cms-input>
+                 <cms-input  label="机构代码" v-model="canShu.queryOrgCode"></cms-input>
+                <el-button @click="query">查询</el-button>                
+            </div>
+        </div>
+        <!-- 表格 -->
+         <el-table :data="tableData" stripe style="width: 100%" @selection-change="checkIds" @row-dblclick="rowdbClick">
+             <el-table-column type="selection" width="65" align="right"></el-table-column>
+              <el-table-column prop="orgCode" label="机构代码" align="center"></el-table-column>
+              <el-table-column prop="orgName" label="机构名称" align="left"></el-table-column>
+              <el-table-column prop="orgAppid" label="APPID" align="center"> </el-table-column>
+              <el-table-column prop="orgAppsecret" label="APPSECRET"  align="center"> </el-table-column>
+              <el-table-column prop="updateDate" label="更新时间"  align="center" :formatter="dateFormat"> </el-table-column>
+              <el-table-column prop="" label="状态"   align="center">
+                <div slot-scope="scope">
+                  <span v-if="scope.row.delFlag=='0'">启用</span> 
+                  <span v-else class="red">禁用</span> 
+                </div>
+              </el-table-column>
+              
+         </el-table>
+         <!-- 表格底部 -->
+        <div class="cms-list-footer">
+                <div class="cms-left">
+                  <el-button :disabled="disabled" @click="deleteBatch($api.orgDel,ids)"
+                    v-perms="'/org/delete'"
+                  >批量删除</el-button>
+                </div>
+                <!-- cms分页组件 -->
+              <cms-pagination :total="total" @change="getPages"></cms-pagination>
+          </div> 
+  </section>
+</template>
+
+<script>
+import listMixins from "@/mixins/xinboList";
+export default {
+  mixins: [listMixins],
+  data() {
+    return {
+      canShu: {
+        //只需要业务参数
+        queryOrgName: "",
+        queryOrgCode: "",
+        queryStatus: "",
+        pageNo: "",
+        pageSize: "10"
+      }
+    };
+  },
+  methods: {
+    dateFormat: function(row, column) {
+      const dateStr = row[column.property];
+      if (dateStr == undefined) {
+        return "";
+      }
+      const dateMat = new Date(dateStr);
+      const year = dateMat.getFullYear();
+      const month = dateMat.getMonth() + 1;
+      const day = dateMat.getDate();
+      const hh = dateMat.getHours();
+      const mm = dateMat.getMinutes();
+      const ss = dateMat.getSeconds();
+      return year + "/" + month + "/" + day + " " + hh + ":" + mm + ":" + ss;
+    },
+    rowdbClick: function(row) {
+      this.$router.push({ path: "/jiBing/oprate", query: { id: row.pid } });
+    }
+  },
+  created() {
+    this.params.canShu = JSON.stringify(this.canShu);
+    this.initTableData(this.$api.orgList, this.params);
+  }
+};
+</script>
+
+<style>
+</style>

@@ -1,0 +1,67 @@
+<template>
+  <section v-loading="loading" class="cms-body">
+        <div class="cms-list-header flex-between">
+            <el-button type="primary" 
+             icon="el-icon-plus"
+              @click="routerLink('/target/add','save',0)"
+              v-perms="'/target/add'"
+               
+              >添加</el-button>
+            <!-- 右操作 -->
+        </div>
+        <!-- 表格 -->
+         <el-table :data="tableData" stripe style="width: 100%" @selection-change="checkIds">
+             <el-table-column type="selection" width="65" align="right"></el-table-column>
+              <!-- <el-table-column prop="id" label="指标id" width="50" align="center"></el-table-column>
+              <el-table-column prop="orgId" label="机构id" width="50" align="center"></el-table-column> -->
+              <el-table-column prop="zbbm" label="指标编码" align="center"> </el-table-column>
+              <el-table-column prop="zbmc" label="指标名称"  align="center"> </el-table-column>
+              <!-- <el-table-column prop="slbhjs" label="生理变化解释"   align="center"> </el-table-column>
+              <el-table-column prop="blzgjs" label="病理增高解释"  align="center"> </el-table-column>
+              <el-table-column prop="jkzd" label="健康指导"  align="center"> </el-table-column> -->
+              <el-table-column prop="updateTime" label="更新时间"  align="center"> </el-table-column>
+              <el-table-column prop="updateUser" label="更新用户"  align="center"> </el-table-column>
+              <el-table-column prop="name" label="操作"   align="center">
+                <div slot-scope="scope">
+                    <cms-button type="edit" @click.native="routerLink('/target/edit','update',scope.row.id)"
+                        v-perms="'/target/edit'"
+                    
+                    ></cms-button>
+                     <cms-button type="delete" @click.native="deleteBatch($api.deleteZb,scope.row.id)"
+                       v-perms="'/target/delete'"
+                     ></cms-button>
+                        <cms-button type="view" @click.native="routerLink('/target/targetview','',scope.row.id)"
+                       v-perms="'/target/targetview'"
+                     ></cms-button>
+                </div>
+               </el-table-column>
+         </el-table>
+         <!-- 表格底部 -->
+        <div class="cms-list-footer">
+                <!-- cms分页组件 -->
+              <cms-pagination :total="total" @change="getPages"></cms-pagination>
+          </div> 
+  </section>
+</template>
+
+<script>
+import listMixins from '@/mixins/newlist'
+export default {
+    mixins:[listMixins],
+  data() {
+    return {
+      params: {//只需要业务参数
+        num:1,
+        xsts:10
+      }
+    };
+  },
+  created(){
+     this.initTableData(this.$api.getTargetlist,this.params);
+  }
+};
+</script>
+
+<style>
+
+</style>

@@ -1,0 +1,123 @@
+<template>
+  <section class="cms-body zsjc-view" v-loading="loading">
+    <!-- 返回组件 -->
+    <cms-back></cms-back>
+    <!-- 主工作区 -->
+    <div class="main">
+      <!-- 标题栏 -->
+      <div class="art-title">
+        <div>{{dataInfo.fName}}</div>
+        <div class="fu-biao-ti">
+          <span v-if="dataInfo.checkTime">校对时间：{{dataInfo.checkTime}}</span>
+          <span v-if="dataInfo.checkUser">校对人：{{dataInfo.checkUser}}</span>
+        </div>
+        
+      </div>
+      <div class="art-body">
+        <!-- 操作控制面板 -->
+        <div class="inner-bord">
+          <!-- <div class="kz-pannel">
+          </div> -->
+          
+          <!-- 预览 区域-->
+          <div id="con_ProviewArea">
+            <div class="word_title">【概述】</div>
+            <div class="word_content word-token-editer-div" data-type="fGaiShuDis" v-html="dataInfo.fGaiShuDis"></div>
+            <div class="word_title">【临床表现】</div>
+            <div class="word_content word-token-editer-div" data-type="fLinChuangTeDianDis" v-html="dataInfo.fLinChuangTeDianDis"></div>
+            <div class="word_title">【诊断要点】</div>
+            <div class="word_content word-token-editer-div" data-type="fZhiLiaoDis" v-html="dataInfo.fZhiLiaoDis"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <el-button type="primary"  @click.native="routerLink('/jiBing/list','list')">返回列表</el-button>
+      </div>
+    </div>
+
+  </section>
+</template>
+<script>
+import axios from "axios";
+import va from "@/rules";
+import formMixns from "@/mixins/form";
+
+export default {
+  mixins: [formMixns], //普通表单变量
+  data() {
+    let required = va.required("此项必填");
+    return {
+    };
+  },
+  methods: {
+    /**
+     * 查询页面内容
+     */
+    getDataInfo(id) {
+      //重写获取表单数据
+      let api = this.$api; //API地址
+      let paras = { canShu: JSON.stringify({ pid: id }) };
+      axios
+        .all([
+          axios.post(api.jibingDetail, paras) //axios批量发送请求
+        ])
+        .then(
+          axios.spread(data => {
+            this.dataInfo = data.body.detailData; //将用户数据复制给dataInfo
+            this.loading = false;
+          })
+        )
+        .catch(err => {
+          this.loading = false;
+        });
+    }
+  },
+  created() {
+    //初始获取数据
+    this.getDataInfo(this.id);
+  }
+};
+</script>
+
+<style>
+.zsjc-view {
+  color: #333;
+}
+.zsjc-view .main {
+  border: 1px solid #e6ebf5;
+  border-width: 0 1px 0 0;
+}
+/*标题*/
+.art-title {
+  font-size: 24px;
+  text-align: center;
+  padding: 15px 0;
+  border-bottom: 2px solid #e6ebf5;
+}
+.art-title .fu-biao-ti{
+  font-size: 12px;
+  color:#999;
+  margin-top: 10px;
+}
+.art-title .fu-biao-ti span{
+  margin: 20px;
+}
+.art-body {
+  padding: 20px;
+}
+.art-body .inner-bord {
+  border: 1px solid #e6ebf5;
+}
+/* 控制条*/
+.kz-pannel {
+  background-color: #f5f6f5;
+  padding: 10px 20px;
+}
+
+.main .form-footer {
+  padding: 15px 0;
+  text-align: center;
+}
+
+</style>
